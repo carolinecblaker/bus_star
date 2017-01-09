@@ -1,0 +1,231 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<title>Bus Data of the City of Albuquerque</title>
+		<style>
+			canvas {
+				width: 100%;
+				background-color:#fff;
+				margin: 5% 0 5% -1px;
+				border:1px solid red;
+				
+			}
+			.container {
+				width:94%;
+				margin: 3%;
+				background-color:#efefef;
+			}
+		
+		</style>
+		
+	</head>
+	<body>
+		
+		<div class='container' id="page">
+			<h1>Bus Data Star</h1>
+			<h4>Because Open Data deserves to shine</h4>
+			<h5>by Caroline C. Blaker</h5>
+			<h6>1/4/17</h6>
+			<div id="holder"></div>
+				<canvas id='busStar'>
+				</canvas>
+			</div>
+		</div>
+		<script src="../vendor/fetch/fetch.js"></script>  
+		   <!--That all browsers may one day support Fetch. Until then, polyfill so that those of us who adopt it early don't look like idiots. -->
+		<script>
+		
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+	
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
+
+var endpoint = '../allroutes-petroglyph.kml'; //http://data.cabq.gov/transit/realtime/route/allroutes.kml
+var points = []; //name, longitude, latitude
+var oldData = [];
+
+var prom = fetch(endpoint).then(function (blob) {
+	return blob.text();
+}).then(function (str) {
+	return new window.DOMParser().parseFromString(str, "text/xml");
+}).then(function (data) {
+	return xmlToJson(data);
+}) //Ideally, would I be able to pare down the excess crap here?
+.then(function (data) {
+	return formatObj(data);
+}).then(function (data) {
+	return paintStar(data, oldData);
+}).then(function (data) {
+	return clearArray(oldData);
+}).then(function (data) {
+	return oldData.push.apply(oldData, _toConsumableArray(data));
+}).then(function (data) {
+	return console.log(oldData);
+});
+
+function test(info) {
+	console.log(info);
+}
+function clearArray(oldData) {
+	return oldData;
+}
+
+function paintStar(points, oldPoints) {
+	if (oldPoints.length === 0) {
+
+		var startLat = 0;
+		var startLong = 0;
+	}
+
+	var canvas = document.getElementById('busStar');
+
+	var canvWidth = document.getElementById('page').offsetWidth;
+	var canvHeight = canvWidth;
+	canvas.width = parent.innerWidth;
+	canvas.height = canvas.width;
+	var context = canvas.getContext('2d');
+
+	//get range of max/min latitudes & longitudes
+
+	var maxLat = Math.max.apply(Math, points.map(function (o) {
+		return o.latitude;
+	}));
+	var minLat = Math.min.apply(Math, points.map(function (o) {
+		return o.latitude;
+	}));
+
+	var maxLon = Math.max.apply(Math, points.map(function (o) {
+		return o.longitude;
+	}));
+	var minLon = Math.min.apply(Math, points.map(function (o) {
+		return o.longitude;
+	}));
+	console.log(maxLat + ' : ' + minLat);
+
+	for (var key in points) {
+		//															preportion
+		//find the coord = truncate -> actual measurement normalized over max and min normalized
+
+		points[key]['x'] = Math.trunc((points[key]['longitude'] - minLon) / (maxLon - minLon) * canvWidth);
+		points[key]['y'] = Math.trunc((points[key]['latitude'] - minLat) / (maxLat - minLat) * canvHeight);
+
+		var origin = canvWidth / 2 + ',' + canvHeight / 2;
+		context.globalCompositeOperation = 'destination-atop';
+		context.strokeStyle = 'rgba(0,0,0,0.7)';
+		context.fillStyle = 'rgba(0,0,0,0.7)';
+		context.rect(points[key]['x'], points[key]['y'], 3, 3);
+		context.stroke();
+		context.lineTo(canvWidth / 2, canvHeight / 2);
+
+		var value = points[key];
+		console.log(value);
+	}
+
+	return points;
+}
+
+function formatObj(data) {
+	pointObj = data.kml.Document.Placemark;
+	var returnVal = [];
+
+	Object.keys(pointObj).forEach(function (key) {
+
+		var obj = pointObj[key];
+		returnVal[key] = [];
+
+		var busName = obj.name['#text'];
+
+		var _obj$Point$coordinate = obj.Point.coordinates['#text'].split(','),
+		    _obj$Point$coordinate2 = _slicedToArray(_obj$Point$coordinate, 2),
+		    longitude = _obj$Point$coordinate2[0],
+		    latitude = _obj$Point$coordinate2[1];
+
+		returnVal[key]['name'] = busName;
+		returnVal[key]['latitude'] = latitude;
+		returnVal[key]['longitude'] = longitude;
+		returnVal[key]['color'] = genColor(Math.random(), .95, .5);
+
+		var vehicleNum = obj.description.table.tr[0].td[1]['#text'];
+		var speed = obj.description.table.tr[1].td[1]['#text'];
+		var lastPing = obj.description.table.tr[2].td[1]['#text'];
+		var lastStop = obj.description.table.tr[3].td[1]['#text'];
+
+		// const vehicle = obj.description.table.tr.td['1']['#text'];
+		// console.log(obj.description.table.tr[3].td[1]['#text']);
+		//  console.log(obj);
+	});
+	//window.console.log(returnVal);
+	return returnVal;
+}
+function genColor(h, s, v) {
+
+	var r, g, b, i, f, p, q, t;
+	if (arguments.length === 1) {
+		s = h.s, v = h.v, h = h.h;
+	}
+	i = Math.floor(h * 6);
+	f = h * 6 - i;
+	p = v * (1 - s);
+	q = v * (1 - f * s);
+	t = v * (1 - (1 - f) * s);
+	switch (i % 6) {
+		case 0:
+			r = v, g = t, b = p;break;
+		case 1:
+			r = q, g = v, b = p;break;
+		case 2:
+			r = p, g = v, b = t;break;
+		case 3:
+			r = p, g = q, b = v;break;
+		case 4:
+			r = t, g = p, b = v;break;
+		case 5:
+			r = v, g = p, b = q;break;
+	}
+	return '#' + Math.round(r * 255) + ' ' + Math.round(g * 255) + ' ' + Math.round(b * 255);
+}
+
+function xmlToJson(xml) {
+	// THANK YOU DAVID WALSH https://davidwalsh.name/convert-xml-json
+
+	// Create the return object
+	var obj = {};
+
+	if (xml.nodeType == 1) {
+		// element
+		// do attributes
+		if (xml.attributes.length > 0) {
+			obj["@attributes"] = {};
+			for (var j = 0; j < xml.attributes.length; j++) {
+				var attribute = xml.attributes.item(j);
+				obj["@attributes"][attribute.nodeName] = attribute.nodeValue;
+			}
+		}
+	} else if (xml.nodeType == 3) {
+		// text
+		obj = xml.nodeValue;
+	}
+
+	// do children
+	if (xml.hasChildNodes()) {
+		for (var i = 0; i < xml.childNodes.length; i++) {
+			var item = xml.childNodes.item(i);
+			var nodeName = item.nodeName;
+
+			if (typeof obj[nodeName] == "undefined") {
+				obj[nodeName] = xmlToJson(item);
+				//	console.log(nodeName);
+			} else {
+				if (typeof obj[nodeName].push == "undefined") {
+					var old = obj[nodeName];
+					obj[nodeName] = [];
+					obj[nodeName].push(old);
+				}
+				obj[nodeName].push(xmlToJson(item));
+			}
+		}
+	}
+	//console.log(obj);
+	return obj;
+};		</script>
+	</body>
+</html>
