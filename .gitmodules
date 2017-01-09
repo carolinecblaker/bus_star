@@ -1,3 +1,6 @@
 [submodule "vendor/raphael"]
 	path = vendor/raphael
 	url = https://github.com/DmitryBaranovskiy/raphael.git
+[submodule "vendor/fetch"]
+	path = vendor/fetch
+	url = https://github.com/github/fetch
