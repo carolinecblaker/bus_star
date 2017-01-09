@@ -1,38 +1,75 @@
 <!DOCTYPE HTML>
 <html>
 	<head>
-		<title>Bus Data of the City of Albuquerque</title>
+		<title>Bus Data Star of the City of Albuquerque</title>
+		<meta type="description" content="This is a colorful star driven by the City of Albuquerque's open data on city busses.">
+		<meta type="og:author" content= "Caroline C. Blaker">
+		<link href="https://fonts.googleapis.com/css?family=Merriweather:400,700'" rel="stylesheet">
 		<style>
+			body {
+				font-family:"Helvetica Neue", Helvetica, sans-serif;
+				font-size:15.3px;
+				line-height:1.3em;
+			}
+			h1, h2, h3 {
+				font-family:"Merriweather", serif;
+			}
+			h2 {
+				font-weight:400;
+			}
+			header {
+				padding:30px;
+				text-align:center;
+				background-color:#efefef;
+			}
 			canvas {
 				width: 100%;
 				background-color:#fff;
-				margin: 5% 0 5% -1px;
+				margin: 0 0 5% -1px;
 				border:1px solid red;
 				
 			}
 			.container {
 				width:94%;
 				margin: 3%;
-				background-color:#efefef;
+				
 			}
-		
+			footer {
+				font-size:10px;
+			}
 		</style>
 		
 	</head>
 	<body>
 		
 		<div class='container' id="page">
-			<h1>Bus Data Star</h1>
-			<h4>Because Open Data deserves to shine</h4>
-			<h5>by Caroline C. Blaker</h5>
-			<h6>1/4/17</h6>
+			<header>
+				<h1>ABQ Bus Data Star</h1>
+				<h2>Because Open Data deserves to shine</h2>
+				<h5>by <a href="http://twitter.com/carolinecblaker">Caroline C. Blaker</a></h5>
+				<h6>Version 6: 1/9/17</h6>
+			</header>
 			<div id="holder"></div>
-				<canvas id='busStar'>
-				</canvas>
+			<canvas id='busStar'></canvas>
+			<aside>
+				<h3>What the heck?</h3>
+				<p>The shape you see here is generated entirely out of up-to-the-second positions of the busses in the City of Albuquerque, and Javascript.</p>
+				<p>Refreshing the page will reveal a different, though probably similar, shape. The positions of the busses update with every page refresh.</p>
+				<p>The intent of this project is to continue development to create a beautiful, animated, data-driven spectacle showcasing the beauty and abstract reaches of Open Data. With the dataset refreshing itself every 15 seconds, there are limitless ways to create beautiful abstract visualizations, utilitarian visualizations, or anything in between. </p>
+				<h3>Albuquerque Open Data</h3>
+				<p>Through its Open Data initiative, the City of Albuquerque publishes governmental data it uses to keep track of raw information related to the City of Albuquerque. The directory of existing open data can be found here: <a href="https://www.cabq.gov/abq-data/">https://www.cabq.gov/abq-data/</a>. Updates to this data are automated in real time, every day.</p>
+			
+			
+			</aside>
+			<footer>
+			<p>Copyright &copy;Caroline C. Blaker - MIT License <a href="http://github.com/carolinecblaker">GitHub</a></p>
+			</footer>
 			</div>
 		</div>
 		<script src="../vendor/fetch/fetch.js"></script>  
-		   <!--That all browsers may one day support Fetch. Until then, polyfill so that those of us who adopt it early don't look like idiots. -->
+		   <!-- That all browsers may one day support Fetch. Until then, polyfill so that those of us who adopt it early don't look like idiots. -->
+		<script src="../vendor/raphael/raphael.min.js"></script>    
+		   <!-- I could either try to reverse engineer every method in this library, or just include it. Thank you, Dimitry Baranovskiy -->
 		<script>
 		
 		const endpoint = '../allroutes-petroglyph.kml'; //http://data.cabq.gov/transit/realtime/route/allroutes.kml
@@ -79,7 +116,7 @@
 			 
 			 var maxLon = Math.max.apply(Math,points.map(function(o){return o.longitude;}))
 			 var minLon = Math.min.apply(Math,points.map(function(o){return o.longitude;}))
-			 console.log(maxLat+ ' : '+minLat);
+			
 	    
 			 for (var key in points) {
 			    //															preportion
@@ -89,15 +126,17 @@
 			    points[key]['y']= Math.trunc(((points[key]['latitude'] - minLat)/(maxLat - minLat)) * canvHeight) ;
 			    
 			    const origin = canvWidth/2+','+canvHeight/2;
+			   // context.beginPath();
+			    context.lineWidth=3;
 				context.globalCompositeOperation = 'destination-atop';
-			    context.strokeStyle = 'rgba(0,0,0,0.7)';
-			    context.fillStyle = 'rgba(0,0,0,0.7)';
-			    context.rect(points[key]['x'], points[key]['y'], 3,3);
+			    context.strokeStyle = points[key]['color'];
+			    //context.fillStyle = 'rgba(0,0,0,0.7)';
+			    context.rect(points[key]['x'], points[key]['y'], 0,0);
 				context.stroke();
 				context.lineTo(canvWidth/2,canvHeight/2);
-			    
+			//	context.closePath();
 			    let value = points[key];
-			    console.log(value);
+			    console.log(value['color']);
 			}
 
 	        return points;
@@ -124,7 +163,7 @@
 			  returnVal[key]['name']= busName;
 			  returnVal[key]['latitude']= latitude;
 			  returnVal[key]['longitude']= longitude;
-			  returnVal[key]['color']= genColor(Math.random(),.95,.5);
+			  returnVal[key]['color']= Raphael.getColor('0.9');
 			  
 			  const vehicleNum = obj.description.table.tr[0].td[1]['#text'];
 			  const speed = obj.description.table.tr[1].td[1]['#text'];
@@ -138,27 +177,7 @@
 			//window.console.log(returnVal);
 			return returnVal;
 		}
-		function genColor  (h,s,v) {
-			
-			    var r, g, b, i, f, p, q, t;
-			    if (arguments.length === 1) {
-			        s = h.s, v = h.v, h = h.h;
-			    }
-			    i = Math.floor(h * 6);
-			    f = h * 6 - i;
-			    p = v * (1 - s);
-			    q = v * (1 - f * s);
-			    t = v * (1 - (1 - f) * s);
-			    switch (i % 6) {
-			        case 0: r = v, g = t, b = p; break;
-			        case 1: r = q, g = v, b = p; break;
-			        case 2: r = p, g = v, b = t; break;
-			        case 3: r = p, g = q, b = v; break;
-			        case 4: r = t, g = p, b = v; break;
-			        case 5: r = v, g = p, b = q; break;
-			    }
-			    return `#${Math.round(r * 255)} ${Math.round(g * 255)} ${Math.round(b * 255)}`;			}
-		    
+
 		function xmlToJson(xml) { // THANK YOU DAVID WALSH https://davidwalsh.name/convert-xml-json
 			
 			// Create the return object
