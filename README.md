@@ -1,6 +1,6 @@
 # ABQ Open Data Bus Star
 
-(This likely does not work. I have developed this in part but not to the full extent described by the following words. Thank you for checking it out.)
+(This likely does not work. I have developed this in part but not to the full extent described by the following words. Thank you for looking.)
 
 Because Open Data deserves to shine.
 
